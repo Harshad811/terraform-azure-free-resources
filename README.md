@@ -1,43 +1,274 @@
-# Terraform-AzureDevOps-Sample
+# Terraform Infrastructure Automation with Azure DevOps CI/CD
 
-### You can use the below Azure cli commands to set the terraform remote backend, or you can do it via the portal
+This repository demonstrates a complete end-to-end Infrastructure as Code (IaC) implementation using Terraform on Microsoft Azure, integrated with Azure DevOps CI/CD pipelines and managed through GitHub. The project follows real-world DevOps best practices such as remote backend state management, CI/CD separation, RBAC security, and approval-based deployments.
 
-``` shell
-#!/bin/bash
-## The Storage account name must be unique, and the values below should match your backend.tf
-RESOURCE_GROUP_NAME=demo-resources
-STORAGE_ACCOUNT_NAME=techtutorialswithpiyush
-CONTAINER_NAME=prod-tfstate
+======================================================================
 
-# Create resource group
-az group create --name $RESOURCE_GROUP_NAME --location canadacentral
+PROJECT OBJECTIVE
 
-# Create storage account
-az storage account create --resource-group $RESOURCE_GROUP_NAME --name $STORAGE_ACCOUNT_NAME --sku Standard_LRS --encryption-services blob
+- Provision Azure infrastructure using Terraform
+- Avoid manual resource creation via Azure Portal
+- Store infrastructure as code in GitHub
+- Implement CI/CD pipelines using Azure DevOps
+- Use Azure Storage as a remote backend for Terraform state
+- Follow enterprise-level DevOps standards
 
-# Create blob container
-az storage container create --name $CONTAINER_NAME --account-name $STORAGE_ACCOUNT_NAME
-```
+======================================================================
 
-## Usage/Examples
+TOOLS & TECHNOLOGIES
 
-### 1) login to the CLI
-```shell
-az login --use-device-code
-```
-### 2) set alias
-```shell
-alias tf=terraform
-```
-### 3) initialize the providers
-```shell
-tf init
-```
-### 4) Run the plan
-```shell
-tf plan
-```
-### 5) Apply the changes
-```shell
-tf apply --auto-approve
-```
+- Terraform
+- Microsoft Azure
+- Azure DevOps
+- Azure Storage Account (Remote Backend)
+- Azure CLI
+- GitHub
+- Visual Studio Code (VS Code)
+
+======================================================================
+
+REPOSITORY STRUCTURE
+
+tf_code/
+|
+|-- main.tf
+|-- variables.tf
+|-- .gitignore
+|-- README.md
+
+======================================================================
+
+TERRAFORM CONFIGURATION
+
+variables.tf
+
+variable "location" {
+  description = "Azure region"
+  type        = string
+  default     = "Central India"
+}
+
+variable "prefix" {
+  description = "Resource naming prefix"
+  type        = string
+  default     = "free"
+}
+
+======================================================================
+
+main.tf
+
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 3.0"
+    }
+  }
+}
+
+provider "azurerm" {
+  features {}
+  skip_provider_registration = true
+}
+
+resource "azurerm_resource_group" "rg" {
+  name     = "${var.prefix}-rg"
+  location = var.location
+}
+
+resource "azurerm_virtual_network" "vnet" {
+  name                = "${var.prefix}-vnet"
+  address_space       = ["10.0.0.0/16"]
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+resource "azurerm_subnet" "subnet" {
+  name                 = "${var.prefix}-subnet"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = ["10.0.1.0/24"]
+}
+
+======================================================================
+
+.gitignore
+
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate*
+*.tfvars
+secrets.txt
+.env
+*.log
+
+======================================================================
+
+LOCAL EXECUTION USING VS CODE
+
+az login
+az account set --subscription <SUBSCRIPTION_ID>
+
+terraform init
+terraform validate
+terraform plan
+terraform apply
+terraform destroy
+
+Notes:
+terraform plan -> preview only (no cost)
+terraform apply -> creates resources
+terraform destroy -> deletes resources
+
+======================================================================
+
+REMOTE BACKEND (STATE MANAGEMENT)
+
+Terraform state is stored in an Azure Storage Account instead of locally.
+This enables:
+- Centralized state management
+- Team collaboration
+- CI/CD pipeline compatibility
+- Prevention of state conflicts
+
+======================================================================
+
+CI/CD PIPELINE DESIGN (AZURE DEVOPS)
+
+CI (Continuous Integration):
+- Triggered on every push to main branch
+- Installs Terraform
+- Runs terraform init, validate, fmt -check, plan
+
+CD (Continuous Deployment):
+- Runs only if CI succeeds
+- Requires manual approval
+- Executes terraform apply
+- Uses the same remote backend
+
+======================================================================
+
+AZURE DEVOPS PIPELINE YAML
+
+trigger:
+- main
+
+stages:
+- stage: CI
+  displayName: Terraform CI
+  jobs:
+  - job: Validate
+    displayName: Validate and Plan Terraform
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    - task: TerraformInstaller@1
+      displayName: Install Terraform
+      inputs:
+        terraformVersion: 'latest'
+    - task: TerraformTask@5
+      displayName: Terraform Init
+      inputs:
+        provider: 'azurerm'
+        command: 'init'
+        backendServiceArm: 'Azure-Service-Connection'
+        backendAzureRmResourceGroupName: 'free-rg'
+        backendAzureRmStorageAccountName: 'harshaduppalapati'
+        backendAzureRmContainerName: 'prod-tfstate'
+        backendAzureRmKey: 'prod.terraform.tfstate'
+    - task: TerraformTask@5
+      displayName: Terraform Validate
+      inputs:
+        provider: 'azurerm'
+        command: 'validate'
+    - task: TerraformTask@5
+      displayName: Terraform Format Check
+      inputs:
+        provider: 'azurerm'
+        command: 'custom'
+        customCommand: 'fmt -check'
+    - task: TerraformTask@5
+      displayName: Terraform Plan
+      inputs:
+        provider: 'azurerm'
+        command: 'plan'
+        environmentServiceNameAzureRM: 'Azure-Service-Connection'
+
+- stage: CD
+  displayName: Terraform CD
+  dependsOn: CI
+  condition: succeeded()
+  jobs:
+  - deployment: Apply
+    displayName: Terraform Apply
+    environment: production
+    pool:
+      vmImage: ubuntu-latest
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: TerraformInstaller@1
+            displayName: Install Terraform
+            inputs:
+              terraformVersion: 'latest'
+          - task: TerraformTask@5
+            displayName: Terraform Init
+            inputs:
+              provider: 'azurerm'
+              command: 'init'
+              backendServiceArm: 'Azure-Service-Connection'
+              backendAzureRmResourceGroupName: 'free-rg'
+              backendAzureRmStorageAccountName: 'harshaduppalapati'
+              backendAzureRmContainerName: 'prod-tfstate'
+              backendAzureRmKey: 'prod.terraform.tfstate'
+          - task: TerraformTask@5
+            displayName: Terraform Apply
+            inputs:
+              provider: 'azurerm'
+              command: 'apply'
+              environmentServiceNameAzureRM: 'Azure-Service-Connection'
+
+======================================================================
+
+SECURITY PRACTICES
+
+- Terraform state files are excluded from GitHub
+- Secrets are never committed
+- Azure DevOps Service Connections used for authentication
+- RBAC applied for Storage backend access
+- Manual approval enforced before production apply
+- GitHub secret scanning protections respected
+
+======================================================================
+
+WHY ARTIFACTS ARE NOT USED
+
+Terraform does not generate build outputs.
+Infrastructure state is stored in a remote backend.
+Artifacts are used for application pipelines, not IaC pipelines.
+
+======================================================================
+
+KEY LEARNINGS
+
+- Infrastructure as Code using Terraform
+- Azure remote backend configuration
+- CI/CD automation for infrastructure
+- RBAC and data-plane permissions
+- Real-world DevOps troubleshooting
+- Secure cloud automation
+
+======================================================================
+
+INTERVIEW SUMMARY
+
+"I automated Azure infrastructure provisioning using Terraform and implemented CI/CD pipelines in Azure DevOps with remote state management and approval-based deployments."
+
+======================================================================
+
+AUTHOR
+
+Harshad Krishna Uppalapati
+Aspiring Azure Cloud / DevOps Engineer
