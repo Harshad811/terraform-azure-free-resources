@@ -1,47 +1,42 @@
 # Terraform Infrastructure Automation with Azure DevOps CI/CD
 
-This repository demonstrates a complete end-to-end Infrastructure as Code (IaC) implementation using Terraform on Microsoft Azure, integrated with Azure DevOps CI/CD pipelines and managed through GitHub. The project follows real-world DevOps best practices such as remote backend state management, CI/CD separation, RBAC security, and approval-based deployments.
+This repository demonstrates a complete end-to-end **Infrastructure as Code (IaC)** implementation using **Terraform** on **Microsoft Azure**, integrated with **Azure DevOps CI/CD pipelines** and managed through **GitHub**.  
+The project follows real-world DevOps best practices such as remote backend state management, CI/CD separation, RBAC security, and approval-based deployments.
 
-======================================================================
+---
 
-PROJECT OBJECTIVE
+## 🎯 Project Objective
+- Provision Azure infrastructure using Terraform  
+- Avoid manual resource creation via Azure Portal  
+- Store infrastructure as code in GitHub  
+- Implement CI/CD pipelines using Azure DevOps  
+- Use Azure Storage as a remote backend for Terraform state  
+- Follow enterprise-level DevOps standards  
 
-- Provision Azure infrastructure using Terraform
-- Avoid manual resource creation via Azure Portal
-- Store infrastructure as code in GitHub
-- Implement CI/CD pipelines using Azure DevOps
-- Use Azure Storage as a remote backend for Terraform state
-- Follow enterprise-level DevOps standards
+---
 
-======================================================================
+## 🛠 Tools & Technologies
+- Terraform  
+- Microsoft Azure  
+- Azure DevOps  
+- Azure Storage Account (Remote Backend)  
+- Azure CLI  
+- GitHub  
+- Visual Studio Code (VS Code)  
 
-TOOLS & TECHNOLOGIES
+---
 
-- Terraform
-- Microsoft Azure
-- Azure DevOps
-- Azure Storage Account (Remote Backend)
-- Azure CLI
-- GitHub
-- Visual Studio Code (VS Code)
+## 📂 Repository Structure
 
-======================================================================
+tf_code/ │-- main.tf │-- variables.tf │-- .gitignore │-- README.md
 
-REPOSITORY STRUCTURE
 
-tf_code/
-|
-|-- main.tf
-|-- variables.tf
-|-- .gitignore
-|-- README.md
+---
 
-======================================================================
+## ⚙️ Terraform Configuration
 
-TERRAFORM CONFIGURATION
-
-variables.tf
-
+**variables.tf**
+```hcl
 variable "location" {
   description = "Azure region"
   type        = string
@@ -53,8 +48,6 @@ variable "prefix" {
   type        = string
   default     = "free"
 }
-
-======================================================================
 
 main.tf
 
@@ -91,9 +84,7 @@ resource "azurerm_subnet" "subnet" {
   address_prefixes     = ["10.0.1.0/24"]
 }
 
-======================================================================
-
-.gitignore
+🚫 .gitignore
 
 .terraform/
 .terraform.lock.hcl
@@ -103,10 +94,7 @@ secrets.txt
 .env
 *.log
 
-======================================================================
-
-LOCAL EXECUTION USING VS CODE
-
+💻 Local Execution (VS Code)
 az login
 az account set --subscription <SUBSCRIPTION_ID>
 
@@ -116,41 +104,31 @@ terraform plan
 terraform apply
 terraform destroy
 
-Notes:
-terraform plan -> preview only (no cost)
-terraform apply -> creates resources
-terraform destroy -> deletes resources
 
-======================================================================
+- terraform plan → Preview only (no cost)
+- terraform apply → Creates resources
+- terraform destroy → Deletes resources
 
-REMOTE BACKEND (STATE MANAGEMENT)
-
+📦 Remote Backend (State Management)
 Terraform state is stored in an Azure Storage Account instead of locally.
-This enables:
+Benefits:
 - Centralized state management
 - Team collaboration
 - CI/CD pipeline compatibility
 - Prevention of state conflicts
 
-======================================================================
-
-CI/CD PIPELINE DESIGN (AZURE DEVOPS)
-
+🔄 CI/CD Pipeline Design (Azure DevOps)
 CI (Continuous Integration):
 - Triggered on every push to main branch
 - Installs Terraform
 - Runs terraform init, validate, fmt -check, plan
-
 CD (Continuous Deployment):
 - Runs only if CI succeeds
 - Requires manual approval
 - Executes terraform apply
 - Uses the same remote backend
 
-======================================================================
-
-AZURE DEVOPS PIPELINE YAML
-
+📜 Azure DevOps Pipeline YAML
 trigger:
 - main
 
@@ -230,29 +208,22 @@ stages:
               command: 'apply'
               environmentServiceNameAzureRM: 'Azure-Service-Connection'
 
-======================================================================
 
-SECURITY PRACTICES
 
-- Terraform state files are excluded from GitHub
-- Secrets are never committed
+🔐 Security Practices
+- Terraform state files excluded from GitHub
+- Secrets never committed
 - Azure DevOps Service Connections used for authentication
 - RBAC applied for Storage backend access
 - Manual approval enforced before production apply
 - GitHub secret scanning protections respected
 
-======================================================================
+📌 Why Artifacts Are Not Used
+- Terraform does not generate build outputs
+- Infrastructure state is stored in a remote backend
+- Artifacts are used for application pipelines, not IaC pipelines
 
-WHY ARTIFACTS ARE NOT USED
-
-Terraform does not generate build outputs.
-Infrastructure state is stored in a remote backend.
-Artifacts are used for application pipelines, not IaC pipelines.
-
-======================================================================
-
-KEY LEARNINGS
-
+📚 Key Learnings
 - Infrastructure as Code using Terraform
 - Azure remote backend configuration
 - CI/CD automation for infrastructure
@@ -260,15 +231,10 @@ KEY LEARNINGS
 - Real-world DevOps troubleshooting
 - Secure cloud automation
 
-======================================================================
-
-INTERVIEW SUMMARY
-
+📝 Interview Summary
 "I automated Azure infrastructure provisioning using Terraform and implemented CI/CD pipelines in Azure DevOps with remote state management and approval-based deployments."
 
-======================================================================
 
-AUTHOR
-
+👤 Author
 Harshad Krishna Uppalapati
 Aspiring Azure Cloud / DevOps Engineer
